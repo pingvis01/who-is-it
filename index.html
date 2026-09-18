@@ -859,8 +859,7 @@ async function refreshGame() {
 let lastScreenState = "";
 
 async function updateLobbyIfNeeded() {
-  // Don't re-render the lobby while someone may be typing.
-}  // Re-render lobby periodically so new players/facts appear.
+  // Re-render lobby periodically so new players/facts appear.
   await renderLobby();
 }
 
