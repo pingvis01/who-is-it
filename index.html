@@ -83,6 +83,7 @@
       background: #222;
       color: white;
       font-weight: bold;
+      transition: background 0.2s, opacity 0.2s;
     }
 
     button:hover {
@@ -101,10 +102,12 @@
 
     .danger {
       background: #c62828;
+      color: white;
     }
 
     .success {
       background: #2e7d32;
+      color: white;
     }
 
     .room-code {
@@ -147,6 +150,23 @@
       background: #d7e8ff;
     }
 
+    .status-pill {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+
+    .status-pill.ready {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-pill.waiting {
+      background: #fff3cd;
+      color: #856404;
+    }
+
     .fact-box {
       background: #f2f2f2;
       border-radius: 16px;
@@ -157,14 +177,23 @@
       margin: 20px 0;
     }
 
+    .vote-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin: 15px 0;
+    }
+
     .vote-button {
-      text-align: left;
+      text-align: center;
       background: #fff;
       color: #222;
       border: 2px solid #ddd;
+      margin-top: 0;
+      padding: 12px;
     }
 
-    .vote-button:hover {
+    .vote-button:hover:not(:disabled) {
       border-color: #222;
       background: #f7f7f7;
     }
@@ -176,7 +205,7 @@
     }
 
     .vote-button.self {
-      opacity: 0.45;
+      opacity: 0.5;
     }
 
     .answer {
@@ -239,6 +268,7 @@
 
     .success-notice {
       background: #e8f5e9;
+      color: #1e4620;
     }
 
     .error {
@@ -274,24 +304,8 @@
       font-size: 12px;
     }
 
-    .section-title {
-      margin-top: 25px;
-      border-bottom: 2px solid #eee;
-      padding-bottom: 8px;
-    }
-
     .center {
       text-align: center;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #777;
     }
 
     .winner {
@@ -312,17 +326,10 @@
     }
 
     @media (max-width: 500px) {
-      h1 {
-        font-size: 34px;
-      }
-
-      .fact-box {
-        font-size: 21px;
-      }
-
-      .room-code {
-        font-size: 30px;
-      }
+      h1 { font-size: 34px; }
+      .fact-box { font-size: 21px; }
+      .room-code { font-size: 30px; }
+      .vote-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -343,8 +350,7 @@ let me = JSON.parse(localStorage.getItem("whoIsItMe") || "null");
 let currentRoom = null;
 let currentRound = null;
 let currentFact = null;
-let selectedGuess = null;
-let pollTimer = null;
+let activeChannel = null;
 
 const app = document.getElementById("app");
 
@@ -365,22 +371,26 @@ function saveMe() {
 function clearMe() {
   me = null;
   localStorage.removeItem("whoIsItMe");
+  unsubscribeRealtime();
 }
 
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
+function unsubscribeRealtime() {
+  if (activeChannel) {
+    db.removeChannel(activeChannel);
+    activeChannel = null;
   }
 }
 
-function startPolling() {
-  stopPolling();
-  pollTimer = setInterval(refreshGame, 1200);
-}
+function setupRealtime(roomId) {
+  unsubscribeRealtime();
 
-function showError(message) {
-  app.innerHTML += `<div class="error">${escapeHtml(message)}</div>`;
+  activeChannel = db.channel(`room_${roomId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, () => refreshGame())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rounds', filter: `room_id=eq.${roomId}` }, () => refreshGame())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` }, () => refreshGame())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'facts', filter: `room_id=eq.${roomId}` }, () => refreshGame())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, () => refreshGame())
+    .subscribe();
 }
 
 async function getRoom() {
@@ -419,6 +429,8 @@ async function getPeople() {
 }
 
 async function getFacts() {
+  if (!me) return [];
+
   const { data, error } = await db
     .from("facts")
     .select("*")
@@ -433,8 +445,8 @@ async function getFacts() {
   return data || [];
 }
 
-async function renderHome() {
-  stopPolling();
+function renderHome() {
+  unsubscribeRealtime();
 
   app.innerHTML = `
     <h1>Who Is It?</h1>
@@ -449,7 +461,7 @@ async function renderHome() {
     <div class="card">
       <h2>🚪 Join a game</h2>
       <input id="joinName" placeholder="Your name" maxlength="30" />
-      <input id="joinCode" placeholder="Room code" maxlength="8" />
+      <input id="joinCode" placeholder="Room code" maxlength="8" style="text-transform:uppercase" />
       <button onclick="joinGame()">Join Game</button>
     </div>
   `;
@@ -458,11 +470,9 @@ async function renderHome() {
 function randomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let result = "";
-
   for (let i = 0; i < 5; i++) {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
-
   return result;
 }
 
@@ -478,10 +488,7 @@ async function createGame() {
 
   const { data: room, error: roomError } = await db
     .from("rooms")
-    .insert({
-      code,
-      state: "lobby"
-    })
+    .insert({ code, state: "lobby" })
     .select()
     .single();
 
@@ -510,17 +517,12 @@ async function createGame() {
 
   await db
     .from("rooms")
-    .update({
-      host_player_id: player.id
-    })
+    .update({ host_player_id: player.id })
     .eq("id", room.id);
 
-  me = {
-    roomId: room.id,
-    playerId: player.id
-  };
-
+  me = { roomId: room.id, playerId: player.id };
   saveMe();
+  setupRealtime(room.id);
   await renderLobby();
 }
 
@@ -566,12 +568,9 @@ async function joinGame() {
     return;
   }
 
-  me = {
-    roomId: room.id,
-    playerId: player.id
-  };
-
+  me = { roomId: room.id, playerId: player.id };
   saveMe();
+  setupRealtime(room.id);
   await renderLobby();
 }
 
@@ -587,11 +586,14 @@ async function renderLobby() {
   }
 
   const players = people.filter(p => !p.is_guest);
-  const guests = people.filter(p => p.is_guest);
   const myFacts = facts.filter(f => f.player_id === me.playerId);
   const guestFacts = facts.filter(f => f.guest_name);
-
   const isHost = people.find(p => p.id === me.playerId)?.is_host;
+
+  // Preserve typed text in inputs on background renders
+  const existingFactVal = document.getElementById("newFact")?.value || "";
+  const existingGuestName = document.getElementById("guestName")?.value || "";
+  const existingGuestFact = document.getElementById("guestFact")?.value || "";
 
   app.innerHTML = `
     <h1>Who Is It?</h1>
@@ -599,36 +601,34 @@ async function renderLobby() {
     <div class="card">
       <div class="center">Room code</div>
       <div class="room-code">${escapeHtml(room.code)}</div>
-      <div class="center">
-        Share this code with everyone playing.
-      </div>
+      <div class="center">Share this code with everyone playing.</div>
     </div>
 
     <div class="card">
       <h2>👥 Players</h2>
-
-      ${players.map(p => `
-        <div class="player">
-          <span>
-            ${escapeHtml(p.name)}
-            ${p.is_host ? '<span class="badge host-badge">HOST</span>' : ''}
-          </span>
-          <span>${p.score} pts</span>
-        </div>
-      `).join("")}
-
-      ${players.length === 0 ? "<p>No players yet.</p>" : ""}
+      ${players.map(p => {
+        const hasFact = facts.some(f => f.player_id === p.id);
+        return `
+          <div class="player">
+            <span>
+              ${escapeHtml(p.name)}${p.is_host ? '<span class="badge host-badge">HOST</span>' : ''}
+            </span>
+            <span class="status-pill ${hasFact ? 'ready' : 'waiting'}">
+              ${hasFact ? 'Ready ✓' : 'Waiting for fact...'}
+            </span>
+          </div>
+        `;
+      }).join("")}
     </div>
 
     <div class="card">
       <h2>📝 Your facts</h2>
       <p>Add as many facts as you like. Other players won't see who submitted them until the reveal.</p>
 
-      <textarea id="newFact" placeholder="Example: I once accidentally locked myself out of my house wearing only a towel."></textarea>
+      <textarea id="newFact" placeholder="Example: I once accidentally locked myself out of my house wearing only a towel.">${escapeHtml(existingFactVal)}</textarea>
       <button onclick="addMyFact()">Add Fact</button>
 
       <h3>Your submitted facts (${myFacts.length})</h3>
-
       ${
         myFacts.length
         ? myFacts.map(f => `
@@ -648,15 +648,13 @@ async function renderLobby() {
       ? `
         <div class="card">
           <h2>👤 Guest facts</h2>
-          <p>Add facts for people who aren't playing but can still be the answer.</p>
+          <p>Add facts for people who aren't in the lobby but can still be guessed!</p>
 
-          <input id="guestName" placeholder="Guest person's name" maxlength="30" />
-          <textarea id="guestFact" placeholder="A fact about this guest"></textarea>
+          <input id="guestName" placeholder="Guest person's name" maxlength="30" value="${escapeHtml(existingGuestName)}" />
+          <textarea id="guestFact" placeholder="A fact about this guest">${escapeHtml(existingGuestFact)}</textarea>
           <button onclick="addGuestFact()">Add Guest Fact</button>
 
-          <h3>Guest facts (${guestFacts.length})</h3>
-
-          ${
+          <h3>Guest facts (${guestFacts.length})</h3>${
             guestFacts.length
             ? guestFacts.map(f => `
               <div class="fact-row">
@@ -681,13 +679,7 @@ async function renderLobby() {
       ? `
         <div class="card">
           <h2>🎯 Start the game</h2>
-
-          ${
-            players.length < 2
-            ? `<div class="notice">You need at least 2 players.</div>`
-            : ""
-          }
-
+          ${players.length < 2 ? `<div class="notice">You need at least 2 players.</div>` : ""}
           ${
             players.some(p => !facts.some(f => f.player_id === p.id))
             ? `<div class="notice">Every player needs at least one fact before the game can start.</div>`
@@ -724,21 +716,19 @@ async function addMyFact() {
     return;
   }
 
-  const { error } = await db
-    .from("facts")
-    .insert({
-      room_id: me.roomId,
-      player_id: me.playerId,
-      guest_name: null,
-      text
-    });
+  const { error } = await db.from("facts").insert({
+    room_id: me.roomId,
+    player_id: me.playerId,
+    guest_name: null,
+    text
+  });
 
   if (error) {
-    console.error(error);
     alert("Could not save your fact.");
     return;
   }
 
+  input.value = "";
   await renderLobby();
 }
 
@@ -751,37 +741,27 @@ async function addGuestFact() {
     return;
   }
 
-  const { error } = await db
-    .from("facts")
-    .insert({
-      room_id: me.roomId,
-      player_id: null,
-      guest_name: guestName,
-      text
-    });
+  const { error } = await db.from("facts").insert({
+    room_id: me.roomId,
+    player_id: null,
+    guest_name: guestName,
+    text
+  });
 
   if (error) {
-    console.error(error);
     alert("Could not save guest fact.");
     return;
   }
 
+  document.getElementById("guestName").value = "";
+  document.getElementById("guestFact").value = "";
   await renderLobby();
 }
 
 async function deleteFact(factId) {
-  const { error } = await db
-    .from("facts")
-    .delete()
-    .eq("id", factId);
-
-  if (error) {
-    console.error(error);
-    alert("Could not delete fact.");
-    return;
-  }
-
-  await renderLobby();
+  const { error } = await db.from("facts").delete().eq("id", factId);
+  if (error) alert("Could not delete fact.");
+  else await renderLobby();
 }
 
 async function startGame() {
@@ -789,21 +769,9 @@ async function startGame() {
   const players = people.filter(p => !p.is_guest);
   const facts = await getFacts();
 
-  if (players.length < 2) {
-    alert("You need at least 2 players.");
-    return;
-  }
-
-  for (const player of players) {
-    if (!facts.some(f => f.player_id === player.id)) {
-      alert(`${player.name} needs at least one fact.`);
-      return;
-    }
-  }
-
-  if (!facts.length) {
-    alert("There are no facts.");
-    return;
+  if (players.length < 2) return alert("You need at least 2 players.");
+  if (players.some(p => !facts.some(f => f.player_id === p.id))) {
+    return alert("Every player needs at least one fact.");
   }
 
   const randomFact = facts[Math.floor(Math.random() * facts.length)];
@@ -818,18 +786,11 @@ async function startGame() {
     .select()
     .single();
 
-  if (roundError) {
-    console.error(roundError);
-    alert("Could not start round.");
-    return;
-  }
+  if (roundError) return alert("Could not start round.");
 
   await db
     .from("rooms")
-    .update({
-      state: "playing",
-      current_round_id: round.id
-    })
+    .update({ state: "playing", current_round_id: round.id })
     .eq("id", me.roomId);
 
   await refreshGame();
@@ -839,95 +800,72 @@ async function refreshGame() {
   if (!me) return;
 
   const room = await getRoom();
-
   if (!room) {
     clearMe();
-    stopPolling();
     renderHome();
     return;
   }
 
   if (room.state === "lobby") {
-    await updateLobbyIfNeeded();
+    await renderLobby();
   } else if (room.state === "playing") {
     await renderPlaying(room);
   } else if (room.state === "finished") {
-    await renderFinished(room);
+    await renderFinished();
   }
-}
-
-let lastScreenState = "";
-
-async function updateLobbyIfNeeded() {
-  // Re-render lobby periodically so new players/facts appear.
-  await renderLobby();
 }
 
 async function getCurrentRound(room) {
   if (!room.current_round_id) return null;
 
-  const { data, error } = await db
+  const { data } = await db
     .from("rounds")
     .select("*")
     .eq("id", room.current_round_id)
     .maybeSingle();
-
-  if (error) {
-    console.error(error);
-    return null;
-  }
 
   return data;
 }
 
 async function renderPlaying(room) {
   const round = await getCurrentRound(room);
-
   if (!round) return;
 
   currentRound = round;
 
-  const { data: fact, error: factError } = await db
+  const { data: fact } = await db
     .from("facts")
     .select("*")
     .eq("id", round.fact_id)
     .maybeSingle();
 
-  if (factError || !fact) return;
-
+  if (!fact) return;
   currentFact = fact;
 
   if (round.state === "voting") {
-    await renderVoting(room, round, fact);
+    await renderVoting(round, fact);
   } else if (round.state === "revealed") {
-    await renderReveal(room, round, fact);
+    await renderReveal(round, fact);
   }
 }
 
 async function getCurrentVotes(roundId) {
-  const { data, error } = await db
-    .from("votes")
-    .select("*")
-    .eq("round_id", roundId);
-
-  if (error) {
-    console.error(error);
-    return [];
-  }
-
+  const { data } = await db.from("votes").select("*").eq("round_id", roundId);
   return data || [];
 }
 
-async function renderVoting(room, round, fact) {
+async function renderVoting(round, fact) {
   const people = await getPeople();
   const players = people.filter(p => !p.is_guest);
-
+  const facts = await getFacts();
   const votes = await getCurrentVotes(round.id);
+
   const myVote = votes.find(v => v.voter_player_id === me.playerId);
-
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  const isHost = people.find(p => p.id === me.playerId)?.is_host;
+  const isMyOwnFact = fact.player_id === me.playerId;
 
-  const currentLeader = sortedPlayers.length ? sortedPlayers[0] : null;
+  const guestNames = [...new Set(facts.filter(f => f.guest_name).map(f => f.guest_name))];
 
   app.innerHTML = `
     <h1>Round</h1>
@@ -944,31 +882,49 @@ async function renderVoting(room, round, fact) {
       </p>
 
       <h3>Players</h3>
+      <div class="vote-grid">
+        ${players.map(p => {
+          const isSelf = p.id === me.playerId;
+          const isSelected = myVote?.guessed_player_id === p.id;
 
-      ${players.map(p => {
-        const isSelf = p.id === me.playerId;
-        const isSelected = myVote?.guessed_player_id === p.id;
-
-        return `
-          <button
-            class="vote-button ${isSelected ? "selected" : ""} ${isSelf ? "self" : ""}"
-            onclick="castPlayerVote('${p.id}')"
-            ${isSelf || myVote ? "disabled" : ""}
-          >
-            ${escapeHtml(p.name)}
-            ${isSelf ? " — You" : ""}
-          </button>
-        `;
-      }).join("")}
-
-      <h3>Guests</h3>
-
-      <div id="guestOptions">
-        ${await renderGuestOptions(people, myVote)}
+          return `
+            <button
+              class="vote-button ${isSelected ? "selected" : ""} ${isSelf ? "self" : ""}"
+              onclick="castPlayerVote('${p.id}')"
+              ${isSelf || myVote ? "disabled" : ""}
+            >
+              ${escapeHtml(p.name)}${isSelf ? " (You)" : ""}
+            </button>
+          `;
+        }).join("")}
       </div>
 
       ${
-        myVote
+        guestNames.length
+        ? `
+          <h3>Guests</h3>
+          <div class="vote-grid">
+            ${guestNames.map(name => {
+              const selected = myVote?.guessed_guest_name === name;
+              return `
+                <button
+                  class="vote-button ${selected ? "selected" : ""}"
+                  onclick="castGuestVote('${encodeURIComponent(name)}')"
+                  ${myVote ? "disabled" : ""}
+                >
+                  ${escapeHtml(name)} <span class="badge guest-badge">GUEST</span>
+                </button>
+              `;
+            }).join("")}
+          </div>
+        `
+        : ""
+      }
+
+      ${
+        isMyOwnFact
+        ? `<div class="notice center">💡 This is your fact! Vote for anyone else to keep up appearances.</div>`
+        : myVote
         ? `<div class="notice success-notice center">✓ Your guess has been submitted.</div>`
         : `<div class="notice center">Choose who you think the fact belongs to.</div>`
       }
@@ -976,24 +932,15 @@ async function renderVoting(room, round, fact) {
 
     <div class="card">
       <h2>🏆 Current Leaderboard</h2>
-
-      ${
-        currentLeader
-        ? `<div class="current-leader">
-            Current leader: ${escapeHtml(currentLeader.name)} — ${currentLeader.score} pts
-           </div>`
-        : ""
-      }
-
       ${renderLeaderboard(sortedPlayers)}
     </div>
 
     ${
-      players.find(p => p.id === me.playerId)?.is_host
+      isHost
       ? `
         <div class="card">
           <h3>Host controls</h3>
-          <p>Reveal the answer when everyone has voted, or whenever you're ready.</p>
+          <p>Reveal the answer when everyone has voted.</p>
           <button onclick="revealAnswer()">Reveal Answer</button>
         </div>
       `
@@ -1008,57 +955,14 @@ async function renderVoting(room, round, fact) {
   `;
 }
 
-async function renderGuestOptions(people, myVote) {
-  const facts = await getFacts();
-
-  const guestNames = [...new Set(
-    facts
-      .filter(f => f.guest_name)
-      .map(f => f.guest_name)
-  )];
-
-  if (!guestNames.length) {
-    return `<p class="center">No guest facts in this game.</p>`;
-  }
-
-  return guestNames.map(name => {
-    const selected = myVote?.guessed_guest_name === name;
-
-    return `
-      <button
-        class="vote-button ${selected ? "selected" : ""}"
-        onclick="castGuestVote('${encodeURIComponent(name)}')"
-        ${myVote ? "disabled" : ""}
-      >
-        ${escapeHtml(name)} <span class="badge guest-badge">GUEST</span>
-      </button>
-    `;
-  }).join("");
-}
-
 async function castPlayerVote(playerId) {
-  if (!currentRound) return;
-
-  const people = await getPeople();
-  const target = people.find(p => p.id === playerId);
-
-  if (!target || target.id === me.playerId) return;
-
-  await submitVote({
-    guessed_player_id: playerId,
-    guessed_guest_name: null
-  });
+  if (!currentRound || playerId === me.playerId) return;
+  await submitVote({ guessed_player_id: playerId, guessed_guest_name: null });
 }
 
 async function castGuestVote(encodedName) {
   if (!currentRound) return;
-
-  const guestName = decodeURIComponent(encodedName);
-
-  await submitVote({
-    guessed_player_id: null,
-    guessed_guest_name: guestName
-  });
+  await submitVote({ guessed_player_id: null, guessed_guest_name: decodeURIComponent(encodedName) });
 }
 
 async function submitVote(target) {
@@ -1069,44 +973,26 @@ async function submitVote(target) {
     .eq("voter_player_id", me.playerId)
     .maybeSingle();
 
-  if (existing) {
-    alert("You already voted.");
-    return;
-  }
+  if (existing) return alert("You already voted.");
 
-  const { error } = await db
-    .from("votes")
-    .insert({
-      round_id: currentRound.id,
-      voter_player_id: me.playerId,
-      guessed_player_id: target.guessed_player_id,
-      guessed_guest_name: target.guessed_guest_name
-    });
+  const { error } = await db.from("votes").insert({
+    round_id: currentRound.id,
+    voter_player_id: me.playerId,
+    guessed_player_id: target.guessed_player_id,
+    guessed_guest_name: target.guessed_guest_name
+  });
 
-  if (error) {
-    console.error(error);
-    alert("Could not submit vote.");
-    return;
-  }
-
-  await refreshGame();
+  if (error) alert("Could not submit vote.");
+  else await refreshGame();
 }
 
 function renderLeaderboard(players) {
-  if (!players.length) {
-    return "<p>No scores yet.</p>";
-  }
+  if (!players.length) return "<p>No scores yet.</p>";
 
   return `
     <div class="leaderboard">
       ${players.map((p, index) => {
-        let medal = "";
-
-        if (index === 0) medal = "🥇";
-        else if (index === 1) medal = "🥈";
-        else if (index === 2) medal = "🥉";
-        else medal = `${index + 1}.`;
-
+        let medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
         return `
           <div class="leader">
             <div class="place">${medal}</div>
@@ -1122,73 +1008,38 @@ function renderLeaderboard(players) {
 async function revealAnswer() {
   const people = await getPeople();
   const host = people.find(p => p.id === me.playerId)?.is_host;
-
-  if (!host) {
-    alert("Only the host can reveal the answer.");
-    return;
-  }
+  if (!host) return alert("Only the host can reveal the answer.");
 
   const round = await getCurrentRound(currentRoom);
-
   if (!round || round.state !== "voting") return;
 
-  const { data: fact } = await db
-    .from("facts")
-    .select("*")
-    .eq("id", round.fact_id)
-    .single();
-
+  const { data: fact } = await db.from("facts").select("*").eq("id", round.fact_id).single();
   if (!fact) return;
 
   const votes = await getCurrentVotes(round.id);
 
   for (const vote of votes) {
     let correct = false;
-
-    if (fact.player_id && vote.guessed_player_id === fact.player_id) {
-      correct = true;
-    }
-
-    if (
-      fact.guest_name &&
-      vote.guessed_guest_name &&
-      fact.guest_name === vote.guessed_guest_name
-    ) {
-      correct = true;
-    }
+    if (fact.player_id && vote.guessed_player_id === fact.player_id) correct = true;
+    if (fact.guest_name && vote.guessed_guest_name && fact.guest_name === vote.guessed_guest_name) correct = true;
 
     if (correct) {
-      await db.rpc("increment_player_score", {
-        player_id_input: vote.voter_player_id
-      }).catch(async () => {
-        const { data: voter } = await db
-          .from("players")
-          .select("score")
-          .eq("id", vote.voter_player_id)
-          .single();
-
-        if (voter) {
-          await db
-            .from("players")
-            .update({ score: voter.score + 1 })
-            .eq("id", vote.voter_player_id);
-        }
-      });
+      const { data: voter } = await db.from("players").select("score").eq("id", vote.voter_player_id).single();
+      if (voter) {
+        await db.from("players").update({ score: voter.score + 1 }).eq("id", vote.voter_player_id);
+      }
     }
   }
 
   await db
     .from("rounds")
-    .update({
-      state: "revealed",
-      revealed_at: new Date().toISOString()
-    })
+    .update({ state: "revealed", revealed_at: new Date().toISOString() })
     .eq("id", round.id);
 
   await refreshGame();
 }
 
-async function renderReveal(room, round, fact) {
+async function renderReveal(round, fact) {
   const people = await getPeople();
   const players = people.filter(p => !p.is_guest);
   const votes = await getCurrentVotes(round.id);
@@ -1199,13 +1050,11 @@ async function renderReveal(room, round, fact) {
 
   const voteResults = players.map(player => {
     const vote = votes.find(v => v.voter_player_id === player.id);
-
     let guessedName = "No guess";
 
     if (vote) {
       if (vote.guessed_player_id) {
-        guessedName =
-          people.find(p => p.id === vote.guessed_player_id)?.name || "Unknown";
+        guessedName = people.find(p => p.id === vote.guessed_player_id)?.name || "Unknown";
       } else if (vote.guessed_guest_name) {
         guessedName = vote.guessed_guest_name;
       }
@@ -1215,15 +1064,10 @@ async function renderReveal(room, round, fact) {
       (fact.player_id && vote?.guessed_player_id === fact.player_id) ||
       (fact.guest_name && vote?.guessed_guest_name === fact.guest_name);
 
-    return {
-      player,
-      guessedName,
-      correct
-    };
+    return { player, guessedName, correct };
   });
 
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-
   const isHost = people.find(p => p.id === me.playerId)?.is_host;
 
   app.innerHTML = `
@@ -1239,41 +1083,21 @@ async function renderReveal(room, round, fact) {
       </div>
 
       <h2>Round Results</h2>
-
       ${
-        voteResults.length
-        ? voteResults.map(result => `
+        voteResults.map(result => `
           <div class="player">
             <span>
               ${escapeHtml(result.player.name)}
               guessed <strong>${escapeHtml(result.guessedName)}</strong>
             </span>
-            <span>
-              ${result.correct ? "✅ +1" : "❌"}
-            </span>
+            <span>${result.correct ? "✅ +1" : "❌"}</span>
           </div>
         `).join("")
-        : "<p>No votes.</p>"
       }
     </div>
 
     <div class="card">
       <h2>🏆 Leaderboard</h2>
-
-      ${
-        sortedPlayers.length
-        ? `
-          <div class="current-leader">
-            ${
-              sortedPlayers[0].score > 0
-              ? `Leading: ${escapeHtml(sortedPlayers[0].name)}`
-              : "No points yet"
-            }
-          </div>
-        `
-        : ""
-      }
-
       ${renderLeaderboard(sortedPlayers)}
     </div>
 
@@ -1281,9 +1105,7 @@ async function renderReveal(room, round, fact) {
       isHost
       ? `
         <div class="card">
-          <button class="success" onclick="nextRound()">
-            Next Round →
-          </button>
+          <button class="success" onclick="nextRound()">Next Round →</button>
         </div>
       `
       : `
@@ -1299,77 +1121,41 @@ async function renderReveal(room, round, fact) {
 
 async function nextRound() {
   const people = await getPeople();
-  const isHost = people.find(p => p.id === me.playerId)?.is_host;
-
-  if (!isHost) return;
+  if (!people.find(p => p.id === me.playerId)?.is_host) return;
 
   const facts = await getFacts();
+  const { data: usedRounds } = await db.from("rounds").select("fact_id").eq("room_id", me.roomId);
 
-  const { data: usedRounds, error } = await db
-    .from("rounds")
-    .select("fact_id")
-    .eq("room_id", me.roomId);
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  const usedFactIds = new Set(
-    (usedRounds || [])
-      .map(r => r.fact_id)
-      .filter(Boolean)
-  );
-
+  const usedFactIds = new Set((usedRounds || []).map(r => r.fact_id).filter(Boolean));
   const unusedFacts = facts.filter(f => !usedFactIds.has(f.id));
 
   if (!unusedFacts.length) {
-    await db
-      .from("rooms")
-      .update({
-        state: "finished"
-      })
-      .eq("id", me.roomId);
-
+    await db.from("rooms").update({ state: "finished" }).eq("id", me.roomId);
     await refreshGame();
     return;
   }
 
-  const randomFact =
-    unusedFacts[Math.floor(Math.random() * unusedFacts.length)];
+  const randomFact = unusedFacts[Math.floor(Math.random() * unusedFacts.length)];
 
-  const { data: round, error: roundError } = await db
+  const { data: round, error } = await db
     .from("rounds")
-    .insert({
-      room_id: me.roomId,
-      fact_id: randomFact.id,
-      state: "voting"
-    })
+    .insert({ room_id: me.roomId, fact_id: randomFact.id, state: "voting" })
     .select()
     .single();
 
-  if (roundError) {
-    console.error(roundError);
-    alert("Could not start next round.");
-    return;
-  }
+  if (error) return alert("Could not start next round.");
 
   await db
     .from("rooms")
-    .update({
-      state: "playing",
-      current_round_id: round.id
-    })
+    .update({ state: "playing", current_round_id: round.id })
     .eq("id", me.roomId);
 
   await refreshGame();
 }
 
-async function renderFinished(room) {
+async function renderFinished() {
   const people = await getPeople();
-  const players = people
-    .filter(p => !p.is_guest)
-    .sort((a, b) => b.score - a.score);
+  const players = people.filter(p => !p.is_guest).sort((a, b) => b.score - a.score);
 
   if (!players.length) return;
 
@@ -1381,7 +1167,6 @@ async function renderFinished(room) {
 
     <div class="winner">
       <div class="winner-trophy">🏆</div>
-
       ${
         winners.length === 1
         ? `
@@ -1391,9 +1176,7 @@ async function renderFinished(room) {
         `
         : `
           <div>It's a tie!</div>
-          <div class="winner-name">
-            ${winners.map(w => escapeHtml(w.name)).join(" & ")}
-          </div>
+          <div class="winner-name">${winners.map(w => escapeHtml(w.name)).join(" & ")}</div>
           <div>${topScore} points each</div>
         `
       }
@@ -1404,12 +1187,11 @@ async function renderFinished(room) {
       ${renderLeaderboard(players)}
     </div>
 
-    <button onclick="renderHome()">New Game</button>
+    <button onclick="leaveGame()">Play Again</button>
   `;
 }
 
 function leaveGame() {
-  stopPolling();
   clearMe();
   currentRoom = null;
   currentRound = null;
@@ -1418,27 +1200,16 @@ function leaveGame() {
 }
 
 async function boot() {
-  if (!me) {
-    renderHome();
-    return;
-  }
+  if (!me) return renderHome();
 
   const room = await getRoom();
-
   if (!room) {
     clearMe();
-    renderHome();
-    return;
+    return renderHome();
   }
 
-  if (room.state === "lobby") {
-    await renderLobby();
-  } else if (room.state === "playing") {
-    await refreshGame();
-    startPolling();
-  } else if (room.state === "finished") {
-    await renderFinished(room);
-  }
+  setupRealtime(room.id);
+  await refreshGame();
 }
 
 boot();
