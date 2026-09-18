@@ -713,8 +713,6 @@ async function renderLobby() {
 
     <button class="secondary" onclick="leaveGame()">Leave Game</button>
   `;
-
-  startPolling();
 }
 
 async function addMyFact() {
@@ -861,7 +859,8 @@ async function refreshGame() {
 let lastScreenState = "";
 
 async function updateLobbyIfNeeded() {
-  // Re-render lobby periodically so new players/facts appear.
+  // Don't re-render the lobby while someone may be typing.
+}  // Re-render lobby periodically so new players/facts appear.
   await renderLobby();
 }
 
