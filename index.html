@@ -8,176 +8,321 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #111;
-      color: #fff;
-      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f5f5;
+      color: #222;
     }
 
     .app {
-      width: 100%;
-      max-width: 600px;
+      max-width: 700px;
       margin: 0 auto;
-      padding: 24px 18px 50px;
+      padding: 20px;
     }
 
     h1 {
       text-align: center;
       font-size: 42px;
-      margin: 15px 0 5px;
+      margin: 20px 0 8px;
     }
 
     h2 {
       margin-top: 0;
     }
 
+    h3 {
+      margin-bottom: 8px;
+    }
+
     .subtitle {
       text-align: center;
-      color: #aaa;
+      color: #666;
       margin-bottom: 30px;
     }
 
     .card {
-      background: #1d1d1d;
-      border: 1px solid #333;
+      background: white;
       border-radius: 18px;
       padding: 22px;
       margin-bottom: 18px;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.08);
     }
 
-    input, textarea {
+    input,
+    textarea,
+    button {
       width: 100%;
-      padding: 15px;
+      font: inherit;
+    }
+
+    input,
+    textarea {
+      border: 1px solid #ccc;
       border-radius: 12px;
-      border: 1px solid #444;
-      background: #111;
-      color: white;
-      font-size: 16px;
-      margin: 7px 0 12px;
+      padding: 13px;
+      margin: 7px 0;
+      background: white;
     }
 
     textarea {
-      min-height: 120px;
+      min-height: 90px;
       resize: vertical;
     }
 
     button {
-      width: 100%;
-      padding: 15px;
       border: 0;
       border-radius: 12px;
-      background: #fff;
-      color: #111;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
+      padding: 14px;
       margin-top: 8px;
+      cursor: pointer;
+      background: #222;
+      color: white;
+      font-weight: bold;
     }
 
-    button.secondary {
-      background: #292929;
-      color: white;
-      border: 1px solid #444;
+    button:hover {
+      opacity: 0.9;
     }
 
     button:disabled {
-      opacity: .4;
+      opacity: 0.4;
       cursor: not-allowed;
+    }
+
+    .secondary {
+      background: #e9e9e9;
+      color: #222;
+    }
+
+    .danger {
+      background: #c62828;
+    }
+
+    .success {
+      background: #2e7d32;
     }
 
     .room-code {
       font-size: 38px;
-      font-weight: 800;
-      letter-spacing: 8px;
+      font-weight: bold;
       text-align: center;
-      padding: 12px;
+      letter-spacing: 8px;
+      padding: 15px;
+      background: #f0f0f0;
+      border-radius: 14px;
+      margin: 15px 0;
     }
 
     .player {
-      padding: 12px 0;
-      border-bottom: 1px solid #333;
       display: flex;
+      align-items: center;
       justify-content: space-between;
+      padding: 11px 0;
+      border-bottom: 1px solid #eee;
     }
 
     .player:last-child {
       border-bottom: 0;
     }
 
-    .pill {
-      background: #333;
+    .badge {
+      display: inline-block;
       padding: 4px 9px;
       border-radius: 20px;
+      background: #eee;
       font-size: 12px;
-      color: #bbb;
+      margin-left: 5px;
     }
 
-    .fact {
+    .host-badge {
+      background: #ffe082;
+    }
+
+    .guest-badge {
+      background: #d7e8ff;
+    }
+
+    .fact-box {
+      background: #f2f2f2;
+      border-radius: 16px;
+      padding: 25px;
       font-size: 25px;
-      line-height: 1.4;
+      line-height: 1.35;
       text-align: center;
-      padding: 25px 5px;
+      margin: 20px 0;
     }
 
     .vote-button {
       text-align: left;
-      background: #242424;
-      color: white;
-      border: 1px solid #444;
+      background: #fff;
+      color: #222;
+      border: 2px solid #ddd;
+    }
+
+    .vote-button:hover {
+      border-color: #222;
+      background: #f7f7f7;
     }
 
     .vote-button.selected {
-      background: white;
-      color: black;
+      background: #222;
+      color: white;
+      border-color: #222;
+    }
+
+    .vote-button.self {
+      opacity: 0.45;
     }
 
     .answer {
-      text-align: center;
       font-size: 30px;
-      font-weight: 800;
-      padding: 20px 0;
+      font-weight: bold;
+      text-align: center;
+      padding: 20px;
+      border-radius: 16px;
+      background: #e8f5e9;
+      margin: 20px 0;
     }
 
-    .score-row {
+    .leaderboard {
+      margin-top: 15px;
+    }
+
+    .leader {
       display: flex;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid #333;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid #eee;
+      font-size: 18px;
+    }
+
+    .leader:first-child {
+      background: #fff8dc;
+      border-radius: 12px;
+    }
+
+    .place {
+      width: 40px;
+      font-size: 25px;
+      text-align: center;
+    }
+
+    .leader-name {
+      flex: 1;
+      font-weight: bold;
+    }
+
+    .score {
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .current-leader {
+      text-align: center;
+      font-weight: bold;
+      font-size: 20px;
+      margin: 15px 0;
+    }
+
+    .notice {
+      padding: 12px;
+      border-radius: 10px;
+      background: #fff3cd;
+      margin: 10px 0;
+    }
+
+    .success-notice {
+      background: #e8f5e9;
     }
 
     .error {
-      background: #3a1515;
-      border: 1px solid #713030;
-      color: #ffb4b4;
+      background: #ffebee;
+      color: #b71c1c;
       padding: 12px;
       border-radius: 10px;
-      margin-bottom: 15px;
+      margin: 10px 0;
     }
 
-    .success {
-      background: #153a22;
-      border: 1px solid #307143;
-      color: #b4ffc9;
+    .fact-row {
       padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 15px;
+      background: #f7f7f7;
+      border-radius: 12px;
+      margin: 8px 0;
     }
 
-    .small {
-      color: #999;
-      font-size: 14px;
+    .fact-row-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
     }
 
-    .hidden {
-      display: none !important;
+    .fact-text {
+      flex: 1;
+    }
+
+    .small-button {
+      width: auto;
+      padding: 7px 10px;
+      margin: 0;
+      font-size: 12px;
+    }
+
+    .section-title {
+      margin-top: 25px;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 8px;
     }
 
     .center {
       text-align: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #777;
+    }
+
+    .winner {
+      text-align: center;
+      padding: 25px;
+      background: #fff8dc;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+
+    .winner-name {
+      font-size: 34px;
+      font-weight: bold;
+    }
+
+    .winner-trophy {
+      font-size: 50px;
+    }
+
+    @media (max-width: 500px) {
+      h1 {
+        font-size: 34px;
+      }
+
+      .fact-box {
+        font-size: 21px;
+      }
+
+      .room-code {
+        font-size: 30px;
+      }
     }
   </style>
 </head>
@@ -188,146 +333,161 @@
   </div>
 
 <script>
-/* =========================================================
-   SUPABASE CONFIGURATION
-   =========================================================
-   Replace the two values below with the values you copied
-   from Supabase.
-*/
-
 const SUPABASE_URL = "https://nzwgvqkxwadcdiapmczf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_2xT9Cw15hi2qP9roi-OasA_POD2gJuX";
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* =========================================================
-   LOCAL PLAYER INFORMATION
-   ========================================================= */
-
-let me = JSON.parse(localStorage.getItem("who_is_it_player") || "null");
+let me = JSON.parse(localStorage.getItem("whoIsItMe") || "null");
+let currentRoom = null;
+let currentRound = null;
+let currentFact = null;
+let selectedGuess = null;
 let pollTimer = null;
-let currentData = null;
+
+const app = document.getElementById("app");
+
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 function saveMe() {
-  localStorage.setItem("who_is_it_player", JSON.stringify(me));
+  localStorage.setItem("whoIsItMe", JSON.stringify(me));
 }
 
 function clearMe() {
-  localStorage.removeItem("who_is_it_player");
   me = null;
+  localStorage.removeItem("whoIsItMe");
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(refreshGame, 1200);
 }
 
 function showError(message) {
-  const old = document.querySelector(".error");
-  if (old) old.remove();
-
-  const div = document.createElement("div");
-  div.className = "error";
-  div.textContent = message;
-
-  const app = document.getElementById("app");
-  app.prepend(div);
+  app.innerHTML += `<div class="error">${escapeHtml(message)}</div>`;
 }
 
-function showSuccess(message) {
-  const div = document.createElement("div");
-  div.className = "success";
-  div.textContent = message;
+async function getRoom() {
+  if (!me) return null;
 
-  const app = document.getElementById("app");
-  app.prepend(div);
-}
+  const { data, error } = await db
+    .from("rooms")
+    .select("*")
+    .eq("id", me.roomId)
+    .maybeSingle();
 
-function makeRoomCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-
-  for (let i = 0; i < 5; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+  if (error) {
+    console.error(error);
+    return null;
   }
 
-  return code;
+  currentRoom = data;
+  return data;
 }
 
-/* =========================================================
-   START SCREEN
-   ========================================================= */
+async function getPeople() {
+  if (!me) return [];
 
-function renderHome() {
+  const { data, error } = await db
+    .from("players")
+    .select("*")
+    .eq("room_id", me.roomId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function getFacts() {
+  const { data, error } = await db
+    .from("facts")
+    .select("*")
+    .eq("room_id", me.roomId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function renderHome() {
   stopPolling();
 
-  document.getElementById("app").innerHTML = `
+  app.innerHTML = `
     <h1>Who Is It?</h1>
-    <div class="subtitle">How well do you really know your friends?</div>
+    <div class="subtitle">A party guessing game</div>
 
     <div class="card">
-      <h2>Create a game</h2>
-
-      <input id="createName"
-             placeholder="Your name"
-             maxlength="30"
-             autocomplete="off" />
-
-      <button id="createBtn">Create Game</button>
+      <h2>🎮 Create a game</h2>
+      <input id="createName" placeholder="Your name" maxlength="30" />
+      <button onclick="createGame()">Create Game</button>
     </div>
 
     <div class="card">
-      <h2>Join a game</h2>
-
-      <input id="joinName"
-             placeholder="Your name"
-             maxlength="30"
-             autocomplete="off" />
-
-      <input id="joinCode"
-             placeholder="5-letter room code"
-             maxlength="5"
-             autocomplete="off"
-             style="text-transform:uppercase" />
-
-      <button id="joinBtn">Join Game</button>
+      <h2>🚪 Join a game</h2>
+      <input id="joinName" placeholder="Your name" maxlength="30" />
+      <input id="joinCode" placeholder="Room code" maxlength="8" />
+      <button onclick="joinGame()">Join Game</button>
     </div>
   `;
-
-  document.getElementById("createBtn").onclick = createGame;
-  document.getElementById("joinBtn").onclick = joinGame;
 }
 
-/* =========================================================
-   CREATE GAME
-   ========================================================= */
+function randomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let result = "";
+
+  for (let i = 0; i < 5; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+
+  return result;
+}
 
 async function createGame() {
   const name = document.getElementById("createName").value.trim();
 
   if (!name) {
-    showError("Please enter your name.");
+    alert("Enter your name.");
     return;
   }
 
-  let room = null;
+  const code = randomCode();
 
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const code = makeRoomCode();
+  const { data: room, error: roomError } = await db
+    .from("rooms")
+    .insert({
+      code,
+      state: "lobby"
+    })
+    .select()
+    .single();
 
-    const { data, error } = await db
-      .from("rooms")
-      .insert({
-        code: code,
-        state: "lobby"
-      })
-      .select()
-      .single();
-
-    if (!error) {
-      room = data;
-      break;
-    }
-  }
-
-  if (!room) {
-    showError("Could not create the game. Please try again.");
+  if (roomError) {
+    console.error(roomError);
+    alert("Could not create game. Please try again.");
     return;
   }
 
@@ -335,14 +495,16 @@ async function createGame() {
     .from("players")
     .insert({
       room_id: room.id,
-      name: name,
-      is_host: true
+      name,
+      is_host: true,
+      is_guest: false
     })
     .select()
     .single();
 
   if (playerError) {
-    showError(playerError.message);
+    console.error(playerError);
+    alert("Could not create player.");
     return;
   }
 
@@ -355,43 +517,35 @@ async function createGame() {
 
   me = {
     roomId: room.id,
-    roomCode: room.code,
-    playerId: player.id,
-    name: player.name,
-    isHost: true
+    playerId: player.id
   };
 
   saveMe();
-  startPolling();
-  renderLobby();
+  await renderLobby();
 }
-
-/* =========================================================
-   JOIN GAME
-   ========================================================= */
 
 async function joinGame() {
   const name = document.getElementById("joinName").value.trim();
   const code = document.getElementById("joinCode").value.trim().toUpperCase();
 
   if (!name || !code) {
-    showError("Please enter your name and room code.");
+    alert("Enter your name and room code.");
     return;
   }
 
-  const { data: room, error: roomError } = await db
+  const { data: room, error } = await db
     .from("rooms")
     .select("*")
     .eq("code", code)
     .maybeSingle();
 
-  if (roomError || !room) {
-    showError("Game not found. Check the room code.");
+  if (error || !room) {
+    alert("Game not found.");
     return;
   }
 
   if (room.state !== "lobby") {
-    showError("That game has already started.");
+    alert("This game has already started.");
     return;
   }
 
@@ -399,280 +553,264 @@ async function joinGame() {
     .from("players")
     .insert({
       room_id: room.id,
-      name: name,
-      is_host: false
+      name,
+      is_host: false,
+      is_guest: false
     })
     .select()
     .single();
 
   if (playerError) {
-    showError(playerError.message);
+    console.error(playerError);
+    alert("Could not join game.");
     return;
   }
 
   me = {
     roomId: room.id,
-    roomCode: room.code,
-    playerId: player.id,
-    name: player.name,
-    isHost: false
+    playerId: player.id
   };
 
   saveMe();
-  startPolling();
-  renderLobby();
+  await renderLobby();
 }
-
-/* =========================================================
-   LOBBY
-   ========================================================= */
 
 async function renderLobby() {
-  stopPolling();
+  const room = await getRoom();
+  const people = await getPeople();
+  const facts = await getFacts();
 
-  document.getElementById("app").innerHTML = `
-    <h1>Who Is It?</h1>
-
-    <div class="card center">
-      <div class="small">ROOM CODE</div>
-      <div class="room-code">${me.roomCode}</div>
-      <div class="small">Tell everyone to join with this code.</div>
-    </div>
-
-    <div class="card">
-      <h2>Players</h2>
-      <div id="playersList">Loading...</div>
-    </div>
-
-    <div class="card">
-      <h2>Your secret fact</h2>
-      <div class="small">
-        Write something interesting about yourself that your friends
-        might not immediately guess.
-      </div>
-
-      <textarea id="factInput"
-        placeholder="Example: I once appeared on TV."
-        maxlength="300"></textarea>
-
-      <button id="saveFactBtn">Save My Fact</button>
-
-      <div id="factStatus" class="small center"></div>
-    </div>
-
-    ${me.isHost ? `
-      <div class="card">
-        <h2>Host controls</h2>
-        <div id="startInfo" class="small">
-          Waiting for everyone to submit a fact...
-        </div>
-        <button id="startBtn" disabled>Start Game</button>
-      </div>
-    ` : `
-      <div class="card center">
-        <div class="small">
-          Waiting for the host to start the game...
-        </div>
-      </div>
-    `}
-
-    <button class="secondary" id="leaveBtn">Leave Game</button>
-  `;
-
-  document.getElementById("saveFactBtn").onclick = saveFact;
-  document.getElementById("leaveBtn").onclick = leaveGame;
-
-  if (me.isHost) {
-    document.getElementById("startBtn").onclick = startGame;
+  if (!room) {
+    clearMe();
+    renderHome();
+    return;
   }
 
-  await updateLobby();
+  const players = people.filter(p => !p.is_guest);
+  const guests = people.filter(p => p.is_guest);
+  const myFacts = facts.filter(f => f.player_id === me.playerId);
+  const guestFacts = facts.filter(f => f.guest_name);
+
+  const isHost = people.find(p => p.id === me.playerId)?.is_host;
+
+  app.innerHTML = `
+    <h1>Who Is It?</h1>
+
+    <div class="card">
+      <div class="center">Room code</div>
+      <div class="room-code">${escapeHtml(room.code)}</div>
+      <div class="center">
+        Share this code with everyone playing.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>👥 Players</h2>
+
+      ${players.map(p => `
+        <div class="player">
+          <span>
+            ${escapeHtml(p.name)}
+            ${p.is_host ? '<span class="badge host-badge">HOST</span>' : ''}
+          </span>
+          <span>${p.score} pts</span>
+        </div>
+      `).join("")}
+
+      ${players.length === 0 ? "<p>No players yet.</p>" : ""}
+    </div>
+
+    <div class="card">
+      <h2>📝 Your facts</h2>
+      <p>Add as many facts as you like. Other players won't see who submitted them until the reveal.</p>
+
+      <textarea id="newFact" placeholder="Example: I once accidentally locked myself out of my house wearing only a towel."></textarea>
+      <button onclick="addMyFact()">Add Fact</button>
+
+      <h3>Your submitted facts (${myFacts.length})</h3>
+
+      ${
+        myFacts.length
+        ? myFacts.map(f => `
+          <div class="fact-row">
+            <div class="fact-row-top">
+              <div class="fact-text">${escapeHtml(f.text)}</div>
+              <button class="small-button danger" onclick="deleteFact('${f.id}')">Delete</button>
+            </div>
+          </div>
+        `).join("")
+        : "<p>No facts yet.</p>"
+      }
+    </div>
+
+    ${
+      isHost
+      ? `
+        <div class="card">
+          <h2>👤 Guest facts</h2>
+          <p>Add facts for people who aren't playing but can still be the answer.</p>
+
+          <input id="guestName" placeholder="Guest person's name" maxlength="30" />
+          <textarea id="guestFact" placeholder="A fact about this guest"></textarea>
+          <button onclick="addGuestFact()">Add Guest Fact</button>
+
+          <h3>Guest facts (${guestFacts.length})</h3>
+
+          ${
+            guestFacts.length
+            ? guestFacts.map(f => `
+              <div class="fact-row">
+                <div class="fact-row-top">
+                  <div class="fact-text">
+                    <strong>${escapeHtml(f.guest_name)}</strong><br>
+                    ${escapeHtml(f.text)}
+                  </div>
+                  <button class="small-button danger" onclick="deleteFact('${f.id}')">Delete</button>
+                </div>
+              </div>
+            `).join("")
+            : "<p>No guest facts yet.</p>"
+          }
+        </div>
+      `
+      : ""
+    }
+
+    ${
+      isHost
+      ? `
+        <div class="card">
+          <h2>🎯 Start the game</h2>
+
+          ${
+            players.length < 2
+            ? `<div class="notice">You need at least 2 players.</div>`
+            : ""
+          }
+
+          ${
+            players.some(p => !facts.some(f => f.player_id === p.id))
+            ? `<div class="notice">Every player needs at least one fact before the game can start.</div>`
+            : `<div class="notice success-notice">Everyone has at least one fact. You can start!</div>`
+          }
+
+          <button
+            class="success"
+            onclick="startGame()"
+            ${players.length < 2 || players.some(p => !facts.some(f => f.player_id === p.id)) ? "disabled" : ""}
+          >
+            Start Game
+          </button>
+        </div>
+      `
+      : `
+        <div class="card center">
+          <h2>⏳ Waiting for the host</h2>
+          <p>Add your facts while you wait.</p>
+        </div>
+      `
+    }
+
+    <button class="secondary" onclick="leaveGame()">Leave Game</button>
+  `;
+
   startPolling();
 }
 
-/* =========================================================
-   LOBBY UPDATE
-   ========================================================= */
-
-async function updateLobby() {
-  if (!me) return;
-
-  const { data: room } = await db
-    .from("rooms")
-    .select("*")
-    .eq("id", me.roomId)
-    .maybeSingle();
-
-  if (!room) {
-    showError("This game no longer exists.");
-    return;
-  }
-
-  if (room.state !== "lobby") {
-    await renderGame();
-    return;
-  }
-
-  const { data: players } = await db
-    .from("players")
-    .select("*")
-    .eq("room_id", me.roomId)
-    .order("created_at");
-
-  const { data: facts } = await db
-    .from("facts")
-    .select("player_id")
-    .eq("room_id", me.roomId);
-
-  const list = document.getElementById("playersList");
-
-  if (list) {
-    list.innerHTML = "";
-
-    (players || []).forEach(player => {
-      const row = document.createElement("div");
-      row.className = "player";
-
-      const left = document.createElement("span");
-      left.textContent = player.name + (player.id === me.playerId ? " (you)" : "");
-
-      const right = document.createElement("span");
-
-      if ((facts || []).some(f => f.player_id === player.id)) {
-        right.textContent = "✓ Fact ready";
-        right.className = "pill";
-      } else {
-        right.textContent = "Writing...";
-        right.className = "pill";
-      }
-
-      row.appendChild(left);
-      row.appendChild(right);
-      list.appendChild(row);
-    });
-  }
-
-  const myFact = await db
-    .from("facts")
-    .select("*")
-    .eq("player_id", me.playerId)
-    .maybeSingle();
-
-  const input = document.getElementById("factInput");
-
-  if (myFact.data && input && !input.value) {
-    input.value = myFact.data.text;
-  }
-
-  const status = document.getElementById("factStatus");
-
-  if (status) {
-    status.textContent = myFact.data
-      ? "✓ Your fact is saved."
-      : "Your fact hasn't been saved yet.";
-  }
-
-  if (me.isHost) {
-    const startBtn = document.getElementById("startBtn");
-    const info = document.getElementById("startInfo");
-
-    const playerCount = players?.length || 0;
-    const factCount = facts?.length || 0;
-
-    const ready = playerCount >= 2 && factCount === playerCount;
-
-    if (startBtn) {
-      startBtn.disabled = !ready;
-    }
-
-    if (info) {
-      if (playerCount < 2) {
-        info.textContent = "You need at least 2 players.";
-      } else if (factCount < playerCount) {
-        info.textContent =
-          `${factCount} of ${playerCount} players have submitted a fact.`;
-      } else {
-        info.textContent = "Everyone is ready! Start the game.";
-      }
-    }
-  }
-}
-
-/* =========================================================
-   SAVE FACT
-   ========================================================= */
-
-async function saveFact() {
-  const input = document.getElementById("factInput");
+async function addMyFact() {
+  const input = document.getElementById("newFact");
   const text = input.value.trim();
 
   if (!text) {
-    showError("Please write a fact first.");
+    alert("Write a fact first.");
     return;
   }
 
-  const existing = await db
+  const { error } = await db
     .from("facts")
-    .select("*")
-    .eq("player_id", me.playerId)
-    .maybeSingle();
+    .insert({
+      room_id: me.roomId,
+      player_id: me.playerId,
+      guest_name: null,
+      text
+    });
 
-  let result;
-
-  if (existing.data) {
-    result = await db
-      .from("facts")
-      .update({ text })
-      .eq("id", existing.data.id);
-  } else {
-    result = await db
-      .from("facts")
-      .insert({
-        room_id: me.roomId,
-        player_id: me.playerId,
-        text
-      });
-  }
-
-  if (result.error) {
-    showError(result.error.message);
+  if (error) {
+    console.error(error);
+    alert("Could not save your fact.");
     return;
   }
 
-  showSuccess("Your secret fact has been saved!");
-  await updateLobby();
+  await renderLobby();
 }
 
-/* =========================================================
-   START GAME
-   ========================================================= */
+async function addGuestFact() {
+  const guestName = document.getElementById("guestName").value.trim();
+  const text = document.getElementById("guestFact").value.trim();
 
-async function startGame() {
-  if (!me.isHost) return;
-
-  const { data: players } = await db
-    .from("players")
-    .select("*")
-    .eq("room_id", me.roomId);
-
-  const { data: facts } = await db
-    .from("facts")
-    .select("*")
-    .eq("room_id", me.roomId);
-
-  if (!players || players.length < 2) {
-    showError("You need at least 2 players.");
+  if (!guestName || !text) {
+    alert("Enter both the guest's name and the fact.");
     return;
   }
 
-  if (!facts || facts.length !== players.length) {
-    showError("Everyone needs to submit a fact first.");
+  const { error } = await db
+    .from("facts")
+    .insert({
+      room_id: me.roomId,
+      player_id: null,
+      guest_name: guestName,
+      text
+    });
+
+  if (error) {
+    console.error(error);
+    alert("Could not save guest fact.");
+    return;
+  }
+
+  await renderLobby();
+}
+
+async function deleteFact(factId) {
+  const { error } = await db
+    .from("facts")
+    .delete()
+    .eq("id", factId);
+
+  if (error) {
+    console.error(error);
+    alert("Could not delete fact.");
+    return;
+  }
+
+  await renderLobby();
+}
+
+async function startGame() {
+  const people = await getPeople();
+  const players = people.filter(p => !p.is_guest);
+  const facts = await getFacts();
+
+  if (players.length < 2) {
+    alert("You need at least 2 players.");
+    return;
+  }
+
+  for (const player of players) {
+    if (!facts.some(f => f.player_id === player.id)) {
+      alert(`${player.name} needs at least one fact.`);
+      return;
+    }
+  }
+
+  if (!facts.length) {
+    alert("There are no facts.");
     return;
   }
 
   const randomFact = facts[Math.floor(Math.random() * facts.length)];
 
-  const { data: round, error } = await db
+  const { data: round, error: roundError } = await db
     .from("rounds")
     .insert({
       room_id: me.roomId,
@@ -682,76 +820,319 @@ async function startGame() {
     .select()
     .single();
 
-  if (error) {
-    showError(error.message);
+  if (roundError) {
+    console.error(roundError);
+    alert("Could not start round.");
     return;
   }
 
   await db
     .from("rooms")
     .update({
-      state: "voting",
+      state: "playing",
       current_round_id: round.id
     })
     .eq("id", me.roomId);
 
-  await renderGame();
+  await refreshGame();
 }
 
-/* =========================================================
-   GAME SCREEN
-   ========================================================= */
-
-async function renderGame() {
-  stopPolling();
-
-  document.getElementById("app").innerHTML = `
-    <h1>Who Is It?</h1>
-
-    <div id="gameContent">
-      Loading game...
-    </div>
-
-    <button class="secondary" id="leaveBtn">Leave Game</button>
-  `;
-
-  document.getElementById("leaveBtn").onclick = leaveGame;
-
-  await updateGame();
-  startPolling();
-}
-
-/* =========================================================
-   GAME UPDATE
-   ========================================================= */
-
-async function updateGame() {
+async function refreshGame() {
   if (!me) return;
 
-  const { data: room } = await db
-    .from("rooms")
-    .select("*")
-    .eq("id", me.roomId)
-    .maybeSingle();
+  const room = await getRoom();
 
-  if (!room) return;
-
-  if (room.state === "finished") {
-    await renderFinished();
+  if (!room) {
+    clearMe();
+    stopPolling();
+    renderHome();
     return;
   }
 
-  if (!room.current_round_id) {
-    return;
+  if (room.state === "lobby") {
+    await updateLobbyIfNeeded();
+  } else if (room.state === "playing") {
+    await renderPlaying(room);
+  } else if (room.state === "finished") {
+    await renderFinished(room);
   }
+}
 
-  const { data: round } = await db
+let lastScreenState = "";
+
+async function updateLobbyIfNeeded() {
+  // Re-render lobby periodically so new players/facts appear.
+  await renderLobby();
+}
+
+async function getCurrentRound(room) {
+  if (!room.current_round_id) return null;
+
+  const { data, error } = await db
     .from("rounds")
     .select("*")
     .eq("id", room.current_round_id)
     .maybeSingle();
 
+  if (error) {
+    console.error(error);
+    return null;
+  }
+
+  return data;
+}
+
+async function renderPlaying(room) {
+  const round = await getCurrentRound(room);
+
   if (!round) return;
+
+  currentRound = round;
+
+  const { data: fact, error: factError } = await db
+    .from("facts")
+    .select("*")
+    .eq("id", round.fact_id)
+    .maybeSingle();
+
+  if (factError || !fact) return;
+
+  currentFact = fact;
+
+  if (round.state === "voting") {
+    await renderVoting(room, round, fact);
+  } else if (round.state === "revealed") {
+    await renderReveal(room, round, fact);
+  }
+}
+
+async function getCurrentVotes(roundId) {
+  const { data, error } = await db
+    .from("votes")
+    .select("*")
+    .eq("round_id", roundId);
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function renderVoting(room, round, fact) {
+  const people = await getPeople();
+  const players = people.filter(p => !p.is_guest);
+
+  const votes = await getCurrentVotes(round.id);
+  const myVote = votes.find(v => v.voter_player_id === me.playerId);
+
+  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+
+  const currentLeader = sortedPlayers.length ? sortedPlayers[0] : null;
+
+  app.innerHTML = `
+    <h1>Round</h1>
+
+    <div class="card">
+      <div class="center">Who does this fact belong to?</div>
+
+      <div class="fact-box">
+        “${escapeHtml(fact.text)}”
+      </div>
+
+      <p class="center">
+        Votes submitted: <strong>${votes.length} / ${players.length}</strong>
+      </p>
+
+      <h3>Players</h3>
+
+      ${players.map(p => {
+        const isSelf = p.id === me.playerId;
+        const isSelected = myVote?.guessed_player_id === p.id;
+
+        return `
+          <button
+            class="vote-button ${isSelected ? "selected" : ""} ${isSelf ? "self" : ""}"
+            onclick="castPlayerVote('${p.id}')"
+            ${isSelf || myVote ? "disabled" : ""}
+          >
+            ${escapeHtml(p.name)}
+            ${isSelf ? " — You" : ""}
+          </button>
+        `;
+      }).join("")}
+
+      <h3>Guests</h3>
+
+      <div id="guestOptions">
+        ${await renderGuestOptions(people, myVote)}
+      </div>
+
+      ${
+        myVote
+        ? `<div class="notice success-notice center">✓ Your guess has been submitted.</div>`
+        : `<div class="notice center">Choose who you think the fact belongs to.</div>`
+      }
+    </div>
+
+    <div class="card">
+      <h2>🏆 Current Leaderboard</h2>
+
+      ${
+        currentLeader
+        ? `<div class="current-leader">
+            Current leader: ${escapeHtml(currentLeader.name)} — ${currentLeader.score} pts
+           </div>`
+        : ""
+      }
+
+      ${renderLeaderboard(sortedPlayers)}
+    </div>
+
+    ${
+      players.find(p => p.id === me.playerId)?.is_host
+      ? `
+        <div class="card">
+          <h3>Host controls</h3>
+          <p>Reveal the answer when everyone has voted, or whenever you're ready.</p>
+          <button onclick="revealAnswer()">Reveal Answer</button>
+        </div>
+      `
+      : `
+        <div class="card center">
+          <p>Waiting for the host to reveal the answer...</p>
+        </div>
+      `
+    }
+
+    <button class="secondary" onclick="leaveGame()">Leave Game</button>
+  `;
+}
+
+async function renderGuestOptions(people, myVote) {
+  const facts = await getFacts();
+
+  const guestNames = [...new Set(
+    facts
+      .filter(f => f.guest_name)
+      .map(f => f.guest_name)
+  )];
+
+  if (!guestNames.length) {
+    return `<p class="center">No guest facts in this game.</p>`;
+  }
+
+  return guestNames.map(name => {
+    const selected = myVote?.guessed_guest_name === name;
+
+    return `
+      <button
+        class="vote-button ${selected ? "selected" : ""}"
+        onclick="castGuestVote('${encodeURIComponent(name)}')"
+        ${myVote ? "disabled" : ""}
+      >
+        ${escapeHtml(name)} <span class="badge guest-badge">GUEST</span>
+      </button>
+    `;
+  }).join("");
+}
+
+async function castPlayerVote(playerId) {
+  if (!currentRound) return;
+
+  const people = await getPeople();
+  const target = people.find(p => p.id === playerId);
+
+  if (!target || target.id === me.playerId) return;
+
+  await submitVote({
+    guessed_player_id: playerId,
+    guessed_guest_name: null
+  });
+}
+
+async function castGuestVote(encodedName) {
+  if (!currentRound) return;
+
+  const guestName = decodeURIComponent(encodedName);
+
+  await submitVote({
+    guessed_player_id: null,
+    guessed_guest_name: guestName
+  });
+}
+
+async function submitVote(target) {
+  const { data: existing } = await db
+    .from("votes")
+    .select("*")
+    .eq("round_id", currentRound.id)
+    .eq("voter_player_id", me.playerId)
+    .maybeSingle();
+
+  if (existing) {
+    alert("You already voted.");
+    return;
+  }
+
+  const { error } = await db
+    .from("votes")
+    .insert({
+      round_id: currentRound.id,
+      voter_player_id: me.playerId,
+      guessed_player_id: target.guessed_player_id,
+      guessed_guest_name: target.guessed_guest_name
+    });
+
+  if (error) {
+    console.error(error);
+    alert("Could not submit vote.");
+    return;
+  }
+
+  await refreshGame();
+}
+
+function renderLeaderboard(players) {
+  if (!players.length) {
+    return "<p>No scores yet.</p>";
+  }
+
+  return `
+    <div class="leaderboard">
+      ${players.map((p, index) => {
+        let medal = "";
+
+        if (index === 0) medal = "🥇";
+        else if (index === 1) medal = "🥈";
+        else if (index === 2) medal = "🥉";
+        else medal = `${index + 1}.`;
+
+        return `
+          <div class="leader">
+            <div class="place">${medal}</div>
+            <div class="leader-name">${escapeHtml(p.name)}</div>
+            <div class="score">${p.score} pts</div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+async function revealAnswer() {
+  const people = await getPeople();
+  const host = people.find(p => p.id === me.playerId)?.is_host;
+
+  if (!host) {
+    alert("Only the host can reveal the answer.");
+    return;
+  }
+
+  const round = await getCurrentRound(currentRoom);
+
+  if (!round || round.state !== "voting") return;
 
   const { data: fact } = await db
     .from("facts")
@@ -759,158 +1140,42 @@ async function updateGame() {
     .eq("id", round.fact_id)
     .single();
 
-  const { data: players } = await db
-    .from("players")
-    .select("*")
-    .eq("room_id", me.roomId)
-    .order("score", { ascending: false });
+  if (!fact) return;
 
-  const { data: votes } = await db
-    .from("votes")
-    .select("*")
-    .eq("round_id", round.id);
+  const votes = await getCurrentVotes(round.id);
 
-  currentData = { room, round, fact, players, votes };
+  for (const vote of votes) {
+    let correct = false;
 
-  if (round.state === "voting") {
-    renderVoting(round, fact, players, votes);
-  } else {
-    renderReveal(round, fact, players, votes);
-  }
-}
-
-/* =========================================================
-   VOTING SCREEN
-   ========================================================= */
-
-function renderVoting(round, fact, players, votes) {
-  const content = document.getElementById("gameContent");
-  if (!content) return;
-
-  const myVote = votes.find(v => v.voter_player_id === me.playerId);
-
-  content.innerHTML = `
-    <div class="card">
-      <div class="small center">ROUND</div>
-      <div class="fact" id="factText"></div>
-    </div>
-
-    <div class="card">
-      <h2>Who is it?</h2>
-      <div id="voteList"></div>
-
-      <div class="small center" style="margin-top:15px">
-        ${votes.length} vote${votes.length === 1 ? "" : "s"} submitted
-      </div>
-    </div>
-
-    ${me.isHost ? `
-      <div class="card">
-        <button id="revealBtn">Reveal Answer</button>
-      </div>
-    ` : ""}
-  `;
-
-  document.getElementById("factText").textContent = `"${fact.text}"`;
-
-  const voteList = document.getElementById("voteList");
-
-  players.forEach(player => {
-    const button = document.createElement("button");
-    button.className = "vote-button";
-
-    if (myVote && myVote.guessed_player_id === player.id) {
-      button.classList.add("selected");
+    if (fact.player_id && vote.guessed_player_id === fact.player_id) {
+      correct = true;
     }
 
-    button.textContent =
-      player.name + (player.id === me.playerId ? " (you)" : "");
+    if (
+      fact.guest_name &&
+      vote.guessed_guest_name &&
+      fact.guest_name === vote.guessed_guest_name
+    ) {
+      correct = true;
+    }
 
-    button.disabled = !!myVote || player.id === me.playerId;
-
-    button.onclick = () => castVote(player.id);
-
-    voteList.appendChild(button);
-  });
-
-  if (me.isHost) {
-    document.getElementById("revealBtn").onclick = revealAnswer;
-  }
-}
-
-/* =========================================================
-   CAST VOTE
-   ========================================================= */
-
-async function castVote(guessedPlayerId) {
-  const existing = await db
-    .from("votes")
-    .select("*")
-    .eq("round_id", currentData.round.id)
-    .eq("voter_player_id", me.playerId)
-    .maybeSingle();
-
-  if (existing.data) {
-    return;
-  }
-
-  const { error } = await db
-    .from("votes")
-    .insert({
-      round_id: currentData.round.id,
-      voter_player_id: me.playerId,
-      guessed_player_id: guessedPlayerId
-    });
-
-  if (error) {
-    showError(error.message);
-    return;
-  }
-
-  await updateGame();
-}
-
-/* =========================================================
-   REVEAL ANSWER
-   ========================================================= */
-
-async function revealAnswer() {
-  if (!me.isHost) return;
-
-  const round = currentData.round;
-
-  if (round.state !== "voting") return;
-
-  const { data: votes } = await db
-    .from("votes")
-    .select("*")
-    .eq("round_id", round.id);
-
-  const { data: players } = await db
-    .from("players")
-    .select("*")
-    .eq("room_id", me.roomId);
-
-  const correctPlayerId = currentData.fact.player_id;
-
-  /*
-    Scoring:
-    Every player who correctly identifies the person
-    gets 1 point.
-  */
-
-  for (const vote of votes || []) {
-    if (vote.guessed_player_id === correctPlayerId) {
-      const player = players.find(p => p.id === vote.voter_player_id);
-
-      if (player) {
-        await db
+    if (correct) {
+      await db.rpc("increment_player_score", {
+        player_id_input: vote.voter_player_id
+      }).catch(async () => {
+        const { data: voter } = await db
           .from("players")
-          .update({
-            score: player.score + 1
-          })
-          .eq("id", player.id);
-      }
+          .select("score")
+          .eq("id", vote.voter_player_id)
+          .single();
+
+        if (voter) {
+          await db
+            .from("players")
+            .update({ score: voter.score + 1 })
+            .eq("id", vote.voter_player_id);
+        }
+      });
     }
   }
 
@@ -922,136 +1187,145 @@ async function revealAnswer() {
     })
     .eq("id", round.id);
 
-  await updateGame();
+  await refreshGame();
 }
 
-/* =========================================================
-   REVEAL SCREEN
-   ========================================================= */
+async function renderReveal(room, round, fact) {
+  const people = await getPeople();
+  const players = people.filter(p => !p.is_guest);
+  const votes = await getCurrentVotes(round.id);
 
-function renderReveal(round, fact, players, votes) {
-  const content = document.getElementById("gameContent");
-  if (!content) return;
+  const answerName = fact.player_id
+    ? people.find(p => p.id === fact.player_id)?.name || "Unknown"
+    : fact.guest_name;
 
-  const author = players.find(p => p.id === fact.player_id);
-
-  content.innerHTML = `
-    <div class="card">
-      <div class="small center">THE ANSWER WAS...</div>
-      <div class="answer" id="answer"></div>
-    </div>
-
-    <div class="card">
-      <div class="fact" id="revealedFact"></div>
-    </div>
-
-    <div class="card">
-      <h2>Round results</h2>
-      <div id="results"></div>
-    </div>
-
-    <div class="card">
-      <h2>Scoreboard</h2>
-      <div id="scoreboard"></div>
-    </div>
-
-    ${me.isHost ? `
-      <button id="nextBtn">Next Round</button>
-    ` : `
-      <div class="card center small">
-        Waiting for the host to start the next round...
-      </div>
-    `}
-  `;
-
-  document.getElementById("answer").textContent =
-    author ? author.name : "Unknown";
-
-  document.getElementById("revealedFact").textContent =
-    `"${fact.text}"`;
-
-  const results = document.getElementById("results");
-
-  players.forEach(player => {
+  const voteResults = players.map(player => {
     const vote = votes.find(v => v.voter_player_id === player.id);
 
-    const guessed = players.find(
-      p => p.id === vote?.guessed_player_id
-    );
+    let guessedName = "No guess";
 
-    const row = document.createElement("div");
-    row.className = "score-row";
-
-    const left = document.createElement("span");
-    left.textContent = player.name;
-
-    const right = document.createElement("span");
-
-    if (!vote) {
-      right.textContent = "No vote";
-    } else if (vote.guessed_player_id === fact.player_id) {
-      right.textContent = "✓ Correct! +1";
-    } else {
-      right.textContent = guessed
-        ? `✗ ${guessed.name}`
-        : "✗ Incorrect";
+    if (vote) {
+      if (vote.guessed_player_id) {
+        guessedName =
+          people.find(p => p.id === vote.guessed_player_id)?.name || "Unknown";
+      } else if (vote.guessed_guest_name) {
+        guessedName = vote.guessed_guest_name;
+      }
     }
 
-    row.appendChild(left);
-    row.appendChild(right);
-    results.appendChild(row);
+    const correct =
+      (fact.player_id && vote?.guessed_player_id === fact.player_id) ||
+      (fact.guest_name && vote?.guessed_guest_name === fact.guest_name);
+
+    return {
+      player,
+      guessedName,
+      correct
+    };
   });
 
-  const scoreboard = document.getElementById("scoreboard");
+  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
 
-  [...players]
-    .sort((a, b) => b.score - a.score)
-    .forEach(player => {
-      const row = document.createElement("div");
-      row.className = "score-row";
+  const isHost = people.find(p => p.id === me.playerId)?.is_host;
 
-      const left = document.createElement("span");
-      left.textContent = player.name;
+  app.innerHTML = `
+    <h1>Reveal!</h1>
 
-      const right = document.createElement("strong");
-      right.textContent = player.score + " pts";
+    <div class="card">
+      <div class="fact-box">
+        “${escapeHtml(fact.text)}”
+      </div>
 
-      row.appendChild(left);
-      row.appendChild(right);
-      scoreboard.appendChild(row);
-    });
+      <div class="answer">
+        👤 ${escapeHtml(answerName)}
+      </div>
 
-  if (me.isHost) {
-    document.getElementById("nextBtn").onclick = nextRound;
-  }
+      <h2>Round Results</h2>
+
+      ${
+        voteResults.length
+        ? voteResults.map(result => `
+          <div class="player">
+            <span>
+              ${escapeHtml(result.player.name)}
+              guessed <strong>${escapeHtml(result.guessedName)}</strong>
+            </span>
+            <span>
+              ${result.correct ? "✅ +1" : "❌"}
+            </span>
+          </div>
+        `).join("")
+        : "<p>No votes.</p>"
+      }
+    </div>
+
+    <div class="card">
+      <h2>🏆 Leaderboard</h2>
+
+      ${
+        sortedPlayers.length
+        ? `
+          <div class="current-leader">
+            ${
+              sortedPlayers[0].score > 0
+              ? `Leading: ${escapeHtml(sortedPlayers[0].name)}`
+              : "No points yet"
+            }
+          </div>
+        `
+        : ""
+      }
+
+      ${renderLeaderboard(sortedPlayers)}
+    </div>
+
+    ${
+      isHost
+      ? `
+        <div class="card">
+          <button class="success" onclick="nextRound()">
+            Next Round →
+          </button>
+        </div>
+      `
+      : `
+        <div class="card center">
+          <p>Waiting for the host to start the next round...</p>
+        </div>
+      `
+    }
+
+    <button class="secondary" onclick="leaveGame()">Leave Game</button>
+  `;
 }
 
-/* =========================================================
-   NEXT ROUND
-   ========================================================= */
-
 async function nextRound() {
-  if (!me.isHost) return;
+  const people = await getPeople();
+  const isHost = people.find(p => p.id === me.playerId)?.is_host;
 
-  const { data: facts } = await db
-    .from("facts")
-    .select("*")
-    .eq("room_id", me.roomId);
+  if (!isHost) return;
 
-  const { data: rounds } = await db
+  const facts = await getFacts();
+
+  const { data: usedRounds, error } = await db
     .from("rounds")
     .select("fact_id")
     .eq("room_id", me.roomId);
 
+  if (error) {
+    console.error(error);
+    return;
+  }
+
   const usedFactIds = new Set(
-    (rounds || []).map(r => r.fact_id)
+    (usedRounds || [])
+      .map(r => r.fact_id)
+      .filter(Boolean)
   );
 
-  const unusedFacts = (facts || []).filter(
-    f => !usedFactIds.has(f.id)
-  );
+  const unusedFacts = facts.filter(f => !usedFactIds.has(f.id));
 
-  if (unusedFacts.length === 0) {
+  if (!unusedFacts.length) {
     await db
       .from("rooms")
       .update({
@@ -1059,153 +1333,118 @@ async function nextRound() {
       })
       .eq("id", me.roomId);
 
-    await renderFinished();
+    await refreshGame();
     return;
   }
 
-  const fact =
+  const randomFact =
     unusedFacts[Math.floor(Math.random() * unusedFacts.length)];
 
-  const { data: round, error } = await db
+  const { data: round, error: roundError } = await db
     .from("rounds")
     .insert({
       room_id: me.roomId,
-      fact_id: fact.id,
+      fact_id: randomFact.id,
       state: "voting"
     })
     .select()
     .single();
 
-  if (error) {
-    showError(error.message);
+  if (roundError) {
+    console.error(roundError);
+    alert("Could not start next round.");
     return;
   }
 
   await db
     .from("rooms")
     .update({
-      state: "voting",
+      state: "playing",
       current_round_id: round.id
     })
     .eq("id", me.roomId);
 
-  await updateGame();
+  await refreshGame();
 }
 
-/* =========================================================
-   FINISHED GAME
-   ========================================================= */
+async function renderFinished(room) {
+  const people = await getPeople();
+  const players = people
+    .filter(p => !p.is_guest)
+    .sort((a, b) => b.score - a.score);
 
-async function renderFinished() {
-  stopPolling();
+  if (!players.length) return;
 
-  const { data: players } = await db
-    .from("players")
-    .select("*")
-    .eq("room_id", me.roomId)
-    .order("score", { ascending: false });
+  const topScore = players[0].score;
+  const winners = players.filter(p => p.score === topScore);
 
-  document.getElementById("app").innerHTML = `
+  app.innerHTML = `
     <h1>🎉 Game Over!</h1>
 
-    <div class="card center">
-      <h2>Final Scores</h2>
-      <div id="finalScores"></div>
+    <div class="winner">
+      <div class="winner-trophy">🏆</div>
+
+      ${
+        winners.length === 1
+        ? `
+          <div>The winner is</div>
+          <div class="winner-name">${escapeHtml(winners[0].name)}</div>
+          <div>${winners[0].score} points</div>
+        `
+        : `
+          <div>It's a tie!</div>
+          <div class="winner-name">
+            ${winners.map(w => escapeHtml(w.name)).join(" & ")}
+          </div>
+          <div>${topScore} points each</div>
+        `
+      }
     </div>
 
-    <button id="homeBtn">Back to Home</button>
+    <div class="card">
+      <h2>🏆 Final Leaderboard</h2>
+      ${renderLeaderboard(players)}
+    </div>
+
+    <button onclick="renderHome()">New Game</button>
   `;
-
-  const scores = document.getElementById("finalScores");
-
-  players.forEach(player => {
-    const row = document.createElement("div");
-    row.className = "score-row";
-
-    const name = document.createElement("span");
-    name.textContent = player.name;
-
-    const score = document.createElement("strong");
-    score.textContent = player.score + " pts";
-
-    row.appendChild(name);
-    row.appendChild(score);
-    scores.appendChild(row);
-  });
-
-  document.getElementById("homeBtn").onclick = () => {
-    clearMe();
-    renderHome();
-  };
 }
-
-/* =========================================================
-   POLLING
-   =========================================================
-   We use a simple 1-second refresh for the first version.
-   Later we can switch this to Supabase Realtime.
-   ========================================================= */
-
-function startPolling() {
-  stopPolling();
-
-  pollTimer = setInterval(async () => {
-    if (!me) return;
-
-    try {
-      if (currentData?.room?.state === "voting" ||
-          currentData?.room?.state === "revealed") {
-        await updateGame();
-      } else {
-        await updateLobby();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }, 1000);
-}
-
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-}
-
-/* =========================================================
-   LEAVE GAME
-   ========================================================= */
 
 function leaveGame() {
   stopPolling();
   clearMe();
+  currentRoom = null;
+  currentRound = null;
+  currentFact = null;
   renderHome();
 }
 
-/* =========================================================
-   START
-   ========================================================= */
+async function boot() {
+  if (!me) {
+    renderHome();
+    return;
+  }
 
-if (me) {
-  startPolling();
+  const room = await getRoom();
 
-  db.from("rooms")
-    .select("*")
-    .eq("id", me.roomId)
-    .maybeSingle()
-    .then(({ data }) => {
-      if (!data) {
-        clearMe();
-        renderHome();
-      } else if (data.state === "lobby") {
-        renderLobby();
-      } else {
-        renderGame();
-      }
-    });
-} else {
-  renderHome();
+  if (!room) {
+    clearMe();
+    renderHome();
+    return;
+  }
+
+  if (room.state === "lobby") {
+    await renderLobby();
+  } else if (room.state === "playing") {
+    await refreshGame();
+    startPolling();
+  } else if (room.state === "finished") {
+    await renderFinished(room);
+  }
 }
+
+boot();
 </script>
+
 </body>
 </html>
